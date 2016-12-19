@@ -3,30 +3,34 @@
 
 void main()
 {
-
+   printf("hello world \n");
 }
 
 //list reverse
 
-typedef struct
+typedef struct link
 {
-    Item date;
-    Node *pnext;
+    int date;
+    struct link *pnext;
 }Node;
 
-int reverse(Node *list)
+Node* reverse(Node *list)
 {
     Node *p;
     Node *q;
 
-    if (list->pnext != NULL)
+    p=list->pnext;
+    list->pnext=NULL;
+    
+    while(p!=NULL)
     {
-        p=list->pnext;
-
+        q=p;
+        p=p->pnext;
+        
+        q->pnext=list->pnext;
+        list->pnext=q;
     }
     
-    while()
-    {
-    }
+    return list;
 }
 
