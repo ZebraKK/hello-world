@@ -34,3 +34,55 @@ Node* reverse(Node *list)
     return list;
 }
 
+// quiksort
+int pivortfind(char data[],int,int);
+void qquiksort(char data[],int,int);
+
+int pivotfind(char data[],int low, int high)
+{
+    int pivot=0;
+
+    pivot=data[low];
+    while(low<high)
+    {
+        while(pivot<=data[high])
+        {
+            --high;
+        }
+   
+        data[low]=data[high];
+    
+        while(data[low]<=pivot)
+        {
+            ++low;
+        }
+       
+        data[high]=data[low];
+    }
+    data[low]=pivot;
+
+    return low;    
+}
+
+void qquiksort(char data[], int low, int high)
+{
+    int pivot;
+    
+    pivot=pivotfind(data,low,high);
+
+    qquiksort(data,low,pivot-1);
+    
+    qquiksort(data,pivot+1,high);    
+
+}
+
+//bit-sort
+
+
+//KMP
+
+
+
+
+
+
