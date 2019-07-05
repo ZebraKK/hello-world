@@ -1,0 +1,197 @@
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	//"path/filepath"
+	"path"
+	"time"
+
+	qnbytes "github.com/qiniu/bytes"
+	"qiniu.com/fusionartisan/cdn.v1/model"
+	//"github.com/qiniu/log.v1"
+)
+
+const (
+	logfile     = "log-"
+	equalfile   = "mid-equal-"
+	noequalfile = "mid-noequal-"
+	zerofile    = "mid=0-"
+	mydir       = "/Users/yuxiaowei/Downloads/resultt"
+	recorddir   = "/Users/yuxiaowei/Downloads/record"
+)
+
+func main() {
+	fmt.Println("hello. Go.....")
+	head := time.Now()
+	//pathname, err := os.Executable()
+	//if err != nil {
+	//	log.Fatalf("Failed to get executable filename, err: %v", err)
+	//}
+	//mydir := filepath.Dir(pathname)
+	//mydir = "/Users/yuxiaowei/Downloads/resultt"
+	//fmt.Println(mydir)
+
+	files, _ := ioutil.ReadDir(mydir)
+	var marknum int = 0
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		} else {
+			fmt.Println("start to file:", file.Name())
+			traversefile(file.Name(), &marknum)
+			time.Sleep(time.Duration(2) * time.Second)
+		}
+	}
+
+	tail := time.Now()
+	fmt.Println("world. ..... ok, cost:", tail.Sub(head))
+}
+
+func remoteAndMatch(name []byte, addr *string) (n int, err error) {
+	client := &http.Client{
+		//Timeout: 20 * time.Second,
+	}
+	requrl := "http://183.131.7.39:55500/v1/domainsconfig/" + string(name[:])
+	req, err := http.NewRequest("GET", requrl, strings.NewReader("mytest"))
+	if err != nil {
+		log.Println(err)
+		return -1, err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return -1, err
+	}
+	defer resp.Body.Close()
+
+	buf := make([]byte, 8096)
+	//cp resp.body to buffer
+	w := qnbytes.NewWriter(buf)
+	_, err = io.Copy(w, resp.Body)
+	if err != nil {
+		return -1, err
+	}
+
+	var domaincfg model.Domain
+	if err := json.Unmarshal(w.Bytes(), &domaincfg); err != nil {
+		return -1, err
+	}
+
+	for _, src := range domaincfg.Sources {
+		*addr = src.Addr
+		switch src.Addr {
+		case "nb-gate-io.qiniu.com": //华东bucket
+			return 5, nil
+		case "nb-gate-io-src.qiniu.com": //华东bucket
+			return 5, nil
+		case "bc-gate-io.qiniu.com": //华北bucket
+			return 4, nil
+		}
+	}
+
+	return -1, nil
+}
+
+func traversefile(filename string, marknum *int) error {
+
+	fr, err := os.OpenFile(path.Join(mydir, filename), os.O_RDWR|os.O_CREATE, 0777)
+	if err != nil {
+		fmt.Println("open err", err)
+		return err
+	}
+	defer fr.Close()
+
+	//logfile
+	// == file
+	// != file
+	//    0 == file
+	fwlog, err := os.OpenFile(path.Join(recorddir, logfile+filename), os.O_RDWR|os.O_CREATE, 0777)
+	fwequal, err := os.OpenFile(path.Join(recorddir, equalfile+filename), os.O_RDWR|os.O_CREATE, 0777)
+	fwnoequal, err := os.OpenFile(path.Join(recorddir, noequalfile+filename), os.O_RDWR|os.O_CREATE, 0777)
+	fwzero, err := os.OpenFile(path.Join(recorddir, zerofile+filename), os.O_RDWR|os.O_CREATE, 0777)
+	if err != nil {
+		fmt.Println("open  writefile err", err)
+		return err
+	}
+	defer fwlog.Close()
+	defer fwequal.Close()
+	defer fwnoequal.Close()
+	defer fwzero.Close()
+
+	bfRd := bufio.NewReader(fr)
+	//logWt := bufio.NewWriter(fwlog)
+	equalWt := bufio.NewWriter(fwequal)
+	noequalWt := bufio.NewWriter(fwnoequal)
+	zeroWt := bufio.NewWriter(fwzero)
+	errcnt := 0
+	for {
+		if errcnt > 10 {
+			break
+		}
+		*marknum = *marknum + 1
+		line, err := bfRd.ReadBytes('\n')
+		fmt.Printf("readling = %s \n", line)
+		if err == nil || err == io.EOF {
+			fields := bytes.Fields(line)
+			if len(fields) <= 0 {
+				fmt.Println("line index:", *marknum, "fields size: ", len(fields))
+				errcnt = errcnt + 1
+				break
+			}
+			//第二个字段为空则补充个 nil 字符
+			if len(fields) == 1 {
+				fields = append(fields, []byte("nil"))
+				fmt.Println(*marknum, " ", fields[0], "index number is null and replace with ", fields[1])
+			}
+			var addr string
+			i, err := remoteAndMatch(fields[0], &addr)
+			if err != nil {
+				fmt.Println(" get confg err:", err)
+				continue
+			}
+
+			//nb-gate-io-msrc.qiniu.com  --  0  //旧中间源线路
+			//msrc-gate-io-hb.qnydns.com --  4  //华北中间源
+			//msrc-gate-io-hd.qnydns.com --  5  //华东中间源
+			fmt.Println(string(fields[0][:]), ":", "mid No.", string(fields[1][:]), "--cfg addr:", addr, "--type:", i)
+			content := "[" + strconv.Itoa(*marknum) + "]" + " " + string(fields[0][:]) + " " + string(fields[1][:]) + ":" + addr + "\n"
+			if strconv.Itoa(i) == string(fields[1][:]) {
+				equalWt.WriteString(content)
+			} else {
+				if string(fields[1][:]) == "0" {
+					zeroWt.WriteString(content)
+				} else {
+					noequalWt.WriteString(content)
+				}
+			}
+
+			if err == io.EOF {
+				fmt.Println("file EOF")
+				break
+			}
+		} else {
+			errcnt = errcnt + 1
+			fmt.Println(err, " and cnt = ", errcnt)
+			continue
+		}
+
+		time.Sleep(time.Duration(10) * time.Millisecond)
+	}
+
+	equalWt.Flush()
+	noequalWt.Flush()
+	zeroWt.Flush()
+
+	return nil
+}
