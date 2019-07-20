@@ -7,7 +7,8 @@ import (
     "sync"
 )
 
-var wg sync.WaitGroup
+var wg = &sync.WaitGroup{}
+
 func main() {
     fmt.Println("go...")
 
@@ -22,7 +23,7 @@ func main() {
         consume(que, i)
     }
     
-    time.Sleep(10*time.Second)
+    //time.Sleep(10*time.Second)
     wg.Wait()
     fmt.Println("end")
 }
@@ -46,18 +47,25 @@ func product(que chan int) {
         wg.Done()
         fmt.Println("product done")
     }()
+
+    fmt.Println("after product goroutine.....")
 }
 
 func consume(que chan int, index int) {
 
     defer func (){
-        fmt.Println(index, "done")
-        wg.Done()
+        fmt.Println(index, "done defer defer ....")
     } ()
     
     go func(){
+        defer func(){
+            fmt.Println(index, " consume done  ....")
+            wg.Done()
+        }()
+
         var list []int
         for {
+            timeout := false 
             var number int
             select {
             case number = <-que:
@@ -67,11 +75,16 @@ func consume(que chan int, index int) {
                 fmt.Println("at No.", index , "consume:", list)
                 time.Sleep(time.Duration(r)*time.Microsecond)
             case <-time.After(time.Duration(100)*time.Millisecond):
-                fmt.Println("at No.", index ," timeout")
-                return
+                fmt.Println("at No.", index ," timeout is ", timeout)
+                timeout = true
+            }
+            if timeout {
+                break
             }
         }
     }()
+
+    fmt.Println("after consume", index, " goroutine.....")
 }
 
 func genRandom(max, num int) int {

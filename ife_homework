@@ -25,3 +25,18 @@
 //ol, ul, li, dl, dd, dt等标签
 
 //br
+	换行<br />
+
+//<table>、<thead>、<tbody>、<td>、<th>、<caption>
+	用来做表格
+
+//<em>、<strong>
+	强调 、 重点强调
+
+// <div> \ <section> h1 h2      \<p>
+	因为div没有任何意义的元素，他只是一个标签，仅仅是用来构建外观和结构。因此是最适合做容器的标签。
+
+// nav
+    整个页面的导航
+
+

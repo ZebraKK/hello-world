@@ -11,9 +11,23 @@ import (
 )
 
 func main() {
-   //my_slice() 
+   my_slice() 
    //my_map()
-     my_json()
+   //my_json()
+   //insert_slice()
+}
+
+func insert_slice() {
+    ss := []int{1,2,3,4,5,6,7,8,9}
+
+    tmpS := append([]int{}, ss[5:]...)// 新申请了
+    fmt.Println("tail:", tmpS)
+
+    fmt.Println("do: ", append(ss[:5], 66))
+    fmt.Println("ss: ", ss)
+    fmt.Println("tmps:", tmpS)
+    fmt.Println("last:", append(ss[:6], tmpS[:]...))
+
 }
 
 type Thello struct {
@@ -43,12 +57,21 @@ func my_map() {
 }
 
 func my_slice() {
-    myslice := []int{2:20}
-    fmt.Println("cap : ", cap(myslice))
+    //myslice := []int{2:20}
+    //fmt.Println("cap : ", cap(myslice))
 
-    for i, value := range myslice {
-        fmt.Println("myslice, i:", i, " value:", value)
-    }
+    //for i, value := range myslice {
+    //    fmt.Println("myslice, i:", i, " value:", value)
+    //}
+
+    myslice := []int{1,2,3,4,5,6,7,8,9,0}
+    a_slice := myslice[:5]
+    b_slice := append([]int{}, myslice[:5]...)
+    fmt.Println("b_slice: ", append(b_slice, 6666))
+    fmt.Println("myslice t:", append(myslice[0:0], 999))
+    fmt.Println("myslice b:", myslice)
+    fmt.Println("a_slice: ", append(a_slice, 6666))
+    fmt.Println("myslice a:", myslice)
 }
 
 func my_goroutine() {
