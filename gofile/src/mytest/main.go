@@ -9,7 +9,14 @@ import (
 
 var wg = &sync.WaitGroup{}
 
+type Item struct {
+    A int
+    B string
+    S []int
+    M map[string]int
+}
 func main() {
+/*
     fmt.Println("go...")
 
     que := make(chan int, 5)
@@ -25,7 +32,25 @@ func main() {
     
     //time.Sleep(10*time.Second)
     wg.Wait()
-    fmt.Println("end")
+*/  
+  fmt.Println("end")
+
+
+  var task = Item{}
+ // task.M = make(map[string]int)
+  task.S = make([]int, 5)
+  fmt.Println("task init")
+  var cp = Item{A:1, B:"haaa"}
+  task = cp
+  if task.M == nil {
+      task.M = make(map[string]int)
+  }
+  task.M["hello"] = 666
+  task.M[""] = 888
+  //task.S[0] = 999
+  fmt.Println(task)
+
+
 }
 
 func product(que chan int) {
